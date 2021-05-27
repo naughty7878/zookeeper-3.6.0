@@ -67,8 +67,11 @@ public final class VerifyingFileFactory {
 
     public static class Builder {
 
+        // 警告相对路径选项
         private boolean warnForRelativePathOption = false;
+        // 失败相对路径选项
         private boolean failForNonExistingPathOption = false;
+        // 日志对象
         private final Logger log;
 
         public Builder(Logger log) {

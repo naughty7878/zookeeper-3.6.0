@@ -74,8 +74,10 @@ public class ZKDatabase {
      * make sure on a clear you take care of
      * all these members.
      */
+    // 数据树
     protected DataTree dataTree;
     protected ConcurrentHashMap<Long, Integer> sessionsWithTimeouts;
+    // 文件事务快照日志
     protected FileTxnSnapLog snapLog;
     protected long minCommittedLog, maxCommittedLog;
 
@@ -92,6 +94,7 @@ public class ZKDatabase {
     protected static int commitLogBuffer = 700;
     protected Queue<Proposal> committedLog = new ArrayDeque<>();
     protected ReentrantReadWriteLock logLock = new ReentrantReadWriteLock();
+    // 是否已初始化，默认为false
     private volatile boolean initialized = false;
 
     /**
@@ -106,6 +109,7 @@ public class ZKDatabase {
      * @param snapLog the FileTxnSnapLog mapping this zkdatabase
      */
     public ZKDatabase(FileTxnSnapLog snapLog) {
+        // 创建数据树
         dataTree = createDataTree();
         sessionsWithTimeouts = new ConcurrentHashMap<Long, Integer>();
         this.snapLog = snapLog;
@@ -724,6 +728,7 @@ public class ZKDatabase {
 
     // visible for testing
     public DataTree createDataTree() {
+        // 创建数据树
         return new DataTree();
     }
 

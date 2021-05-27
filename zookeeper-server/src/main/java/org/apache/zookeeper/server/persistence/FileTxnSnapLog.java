@@ -44,6 +44,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ *
+ * 此类作为最上层的，提供了一系列了操作数据文件的接口，
+ * 其中包括操作事务日志和操作快照的接口，
+ * 而创建当前类实例会根据zoo.cfg中的dataDir以及dataLogDir参数进行构建
+ *
  * This is a helper class
  * above the implementations
  * of txnlog and snapshot
@@ -53,11 +58,15 @@ public class FileTxnSnapLog {
 
     //the directory containing the
     //the transaction logs
+    // 数据目录
     final File dataDir;
     //the directory containing the
     //the snapshot directory
+    // 快照文件目录
     final File snapDir;
+    // 事务日志
     TxnLog txnLog;
+    // 快照日志
     SnapShot snapLog;
     private final boolean autoCreateDB;
     private final boolean trustEmptySnapshot;
@@ -123,6 +132,7 @@ public class FileTxnSnapLog {
         trustEmptySnapshot = Boolean.getBoolean(ZOOKEEPER_SNAPSHOT_TRUST_EMPTY);
         LOG.info("{} : {}", ZOOKEEPER_SNAPSHOT_TRUST_EMPTY, trustEmptySnapshot);
 
+        // 数据目录是否存在
         if (!this.dataDir.exists()) {
             if (!enableAutocreate) {
                 throw new DatadirException(String.format(
@@ -136,10 +146,11 @@ public class FileTxnSnapLog {
                 throw new DatadirException("Unable to create data directory " + this.dataDir);
             }
         }
+        // 数据目录是否写
         if (!this.dataDir.canWrite()) {
             throw new DatadirException("Cannot write to data directory " + this.dataDir);
         }
-
+        // 快照目录是否存在
         if (!this.snapDir.exists()) {
             // by default create this directory, but otherwise complain instead
             // See ZOOKEEPER-1161 for more details
@@ -155,6 +166,7 @@ public class FileTxnSnapLog {
                 throw new DatadirException("Unable to create snap directory " + this.snapDir);
             }
         }
+        // 快照目录是否写
         if (!this.snapDir.canWrite()) {
             throw new DatadirException("Cannot write to snap directory " + this.snapDir);
         }

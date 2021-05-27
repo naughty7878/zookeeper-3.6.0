@@ -26,6 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 此类用来收集Zookeeper运行过程中的统计信息，
+ * 例如发送客户端的响应包次数，收到的请求包次数，最近启动后最大的延迟和最小延迟等
+ *
  * Basic Server Statistics
  */
 public class ServerStats {

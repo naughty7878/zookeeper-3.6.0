@@ -98,18 +98,6 @@ public class ZKAuditProvider {
     }
 
     /**
-     * Add audit log for server start and register server stop log.
-     */
-    public static void addZKStartStopAuditLog() {
-        if (isAuditEnabled()) {
-            log(getZKUser(), AuditConstants.OP_START, Result.SUCCESS);
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                log(getZKUser(), AuditConstants.OP_STOP, Result.INVOKED);
-            }));
-        }
-    }
-
-    /**
      * Add audit log for server start fail.
      */
     public static void addServerStartFailureAuditLog() {
@@ -120,6 +108,18 @@ public class ZKAuditProvider {
 
     private static void log(String user, String operation, Result result) {
         auditLogger.logAuditEvent(createLogEvent(user, operation, result));
+    }
+
+    /**
+     * Add audit log for server start and register server stop log.
+     */
+    public static void addZKStartStopAuditLog() {
+        if (isAuditEnabled()) {
+            log(getZKUser(), AuditConstants.OP_START, Result.SUCCESS);
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                log(getZKUser(), AuditConstants.OP_STOP, Result.INVOKED);
+            }));
+        }
     }
 
     /**

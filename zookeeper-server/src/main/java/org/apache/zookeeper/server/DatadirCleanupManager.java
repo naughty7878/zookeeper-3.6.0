@@ -102,10 +102,13 @@ public class DatadirCleanupManager {
             return;
         }
 
+        // 创建 数据目录清理 定时器
         timer = new Timer("PurgeTask", true);
+        // 数据目录清理任务
         TimerTask task = new PurgeTask(dataLogDir, snapDir, snapRetainCount);
+        // 定时器设置清理任务
         timer.scheduleAtFixedRate(task, 0, TimeUnit.HOURS.toMillis(purgeInterval));
-
+        // 数据目录清理管理器，状态为已开始
         purgeTaskStatus = PurgeTaskStatus.STARTED;
     }
 

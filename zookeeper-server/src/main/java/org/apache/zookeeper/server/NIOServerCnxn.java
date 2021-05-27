@@ -66,11 +66,11 @@ public class NIOServerCnxn extends ServerCnxn {
     private final SelectionKey sk;
 
     private boolean initialized;
-
+    // 缓存
     private final ByteBuffer lenBuffer = ByteBuffer.allocate(4);
-
+    // 输入缓存
     private ByteBuffer incomingBuffer = lenBuffer;
-
+    // 输出缓存队列
     private final Queue<ByteBuffer> outgoingBuffers = new LinkedBlockingQueue<ByteBuffer>();
 
     private int sessionTimeout;
@@ -166,21 +166,29 @@ public class NIOServerCnxn extends ServerCnxn {
 
     /** Read the request payload (everything following the length prefix) */
     private void readPayload() throws IOException, InterruptedException, ClientCnxnLimitException {
+        // 缓存剩余空间不为0
         if (incomingBuffer.remaining() != 0) { // have we read length bytes?
+            // 从SocketChannel中读取内容
             int rc = sock.read(incomingBuffer); // sock is non-blocking, so ok
             if (rc < 0) {
                 handleFailedRead();
             }
         }
-
+        // 缓存剩余空间为0，表示读取类所有数据
         if (incomingBuffer.remaining() == 0) { // have we read length bytes?
+            // 反转缓存
             incomingBuffer.flip();
+            // 收到的数据包
             packetReceived(4 + incomingBuffer.remaining());
+            // 是否已经初始化，默认false
             if (!initialized) {
+                // 读取连接请求
                 readConnectRequest();
             } else {
+                // 读取请求
                 readRequest();
             }
+            // 清空lenBuffer缓存
             lenBuffer.clear();
             incomingBuffer = lenBuffer;
         }
@@ -320,22 +328,30 @@ public class NIOServerCnxn extends ServerCnxn {
 
                 return;
             }
+            // 读就绪
             if (k.isReadable()) {
+                // 从sock中读取数据
                 int rc = sock.read(incomingBuffer);
                 if (rc < 0) {
                     handleFailedRead();
                 }
+                // 缓存当前位置和限制之间的元素数。
+                // 即剩余元素个数
                 if (incomingBuffer.remaining() == 0) {
                     boolean isPayload;
                     if (incomingBuffer == lenBuffer) { // start of next request
+                        // 翻转这个缓冲区
                         incomingBuffer.flip();
+                        // 读取内容长度，是否是有效的
                         isPayload = readLength(k);
+                        // 清空缓存区
                         incomingBuffer.clear();
                     } else {
                         // continuation
                         isPayload = true;
                     }
                     if (isPayload) { // not the case for 4letterword
+                        // 读取内容
                         readPayload();
                     } else {
                         // four letter words take care
@@ -376,6 +392,7 @@ public class NIOServerCnxn extends ServerCnxn {
     }
 
     private void readRequest() throws IOException {
+        // 处理包
         zkServer.processPacket(this, incomingBuffer);
     }
 
@@ -416,7 +433,9 @@ public class NIOServerCnxn extends ServerCnxn {
         if (!isZKServerRunning()) {
             throw new IOException("ZooKeeperServer not running");
         }
+        // 处理连接请求
         zkServer.processConnectRequest(this, incomingBuffer);
+        // 设置已经初始化
         initialized = true;
     }
 
@@ -533,6 +552,7 @@ public class NIOServerCnxn extends ServerCnxn {
      */
     private boolean readLength(SelectionKey k) throws IOException {
         // Read the length, now get the buffer
+        // 读取长度
         int len = lenBuffer.getInt();
         if (!initialized && checkFourLetterWord(sk, len)) {
             return false;
@@ -544,7 +564,9 @@ public class NIOServerCnxn extends ServerCnxn {
             throw new IOException("ZooKeeperServer not running");
         }
         // checkRequestSize will throw IOException if request is rejected
+        // 检查请求内容长度
         zkServer.checkRequestSizeWhenReceivingMessage(len);
+        // 根据长度，创建一个ByteBuffer
         incomingBuffer = ByteBuffer.allocate(len);
         return true;
     }

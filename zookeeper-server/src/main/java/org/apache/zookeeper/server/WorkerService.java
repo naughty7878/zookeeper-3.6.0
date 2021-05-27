@@ -46,11 +46,13 @@ import org.slf4j.LoggerFactory;
 public class WorkerService {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkerService.class);
-
+    // 线程池组
     private final ArrayList<ExecutorService> workers = new ArrayList<ExecutorService>();
-
+    // 线程名称前缀
     private final String threadNamePrefix;
+    // 工作线程数量
     private int numWorkerThreads;
+    // 线程是否可分配，默认false
     private boolean threadsAreAssignable;
     private long shutdownTimeoutMS = 5000;
 
@@ -68,6 +70,7 @@ public class WorkerService {
         this.threadNamePrefix = (name == null ? "" : name) + "Thread";
         this.numWorkerThreads = numThreads;
         this.threadsAreAssignable = useAssignableThreads;
+        // 启用
         start();
     }
 
@@ -112,7 +115,7 @@ public class WorkerService {
             workRequest.cleanup();
             return;
         }
-
+        // 创建任务工作请求
         ScheduledWorkRequest scheduledWorkRequest = new ScheduledWorkRequest(workRequest);
 
         // If we have a worker thread pool, use that; otherwise, do the work
@@ -122,6 +125,7 @@ public class WorkerService {
             try {
                 // make sure to map negative ids as well to [0, size-1]
                 int workerNum = ((int) (id % size) + size) % size;
+                // 获取工作线程池
                 ExecutorService worker = workers.get(workerNum);
                 worker.execute(scheduledWorkRequest);
             } catch (RejectedExecutionException e) {
@@ -151,6 +155,7 @@ public class WorkerService {
                     workRequest.cleanup();
                     return;
                 }
+                // 去工作
                 workRequest.doWork();
             } catch (Exception e) {
                 LOG.warn("Unexpected exception", e);
@@ -197,12 +202,17 @@ public class WorkerService {
     }
 
     public void start() {
+        // 工作线程数 > 0
         if (numWorkerThreads > 0) {
+            // 线程可分配
             if (threadsAreAssignable) {
+                // 循环
                 for (int i = 1; i <= numWorkerThreads; ++i) {
+                    // 添加单线程池，到线程池组中
                     workers.add(Executors.newFixedThreadPool(1, new DaemonThreadFactory(threadNamePrefix, i)));
                 }
             } else {
+                // 添加固定线程池，到线程池组中
                 workers.add(Executors.newFixedThreadPool(numWorkerThreads, new DaemonThreadFactory(threadNamePrefix)));
             }
         }

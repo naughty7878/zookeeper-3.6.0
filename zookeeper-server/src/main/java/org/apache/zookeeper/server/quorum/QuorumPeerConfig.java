@@ -58,6 +58,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+/**
+ * 议会成员配置对象
+ */
 @InterfaceAudience.Public
 public class QuorumPeerConfig {
 
@@ -74,9 +77,13 @@ public class QuorumPeerConfig {
     protected boolean shouldUsePortUnification = false;
     protected int observerMasterPort;
     protected boolean sslQuorumReloadCertFiles = false;
+    // 数据目录
     protected File dataDir;
+    // 数据日志目录
     protected File dataLogDir;
+    // 动态配置文件串
     protected String dynamicConfigFileStr = null;
+    // 配置文件路径
     protected String configFileStr = null;
     protected int tickTime = ZooKeeperServer.DEFAULT_TICK_TIME;
     protected int maxClientCnxns = 60;
@@ -86,7 +93,9 @@ public class QuorumPeerConfig {
     protected int maxSessionTimeout = -1;
     protected String metricsProviderClassName = DefaultMetricsProvider.class.getName();
     protected Properties metricsProviderConfiguration = new Properties();
+    // 本地session是否可用
     protected boolean localSessionsEnabled = false;
+    // 本地session升级是否可用
     protected boolean localSessionsUpgradingEnabled = false;
     /** defaults to -1 if not set explicitly */
     protected int clientPortListenBacklog = -1;
@@ -104,7 +113,7 @@ public class QuorumPeerConfig {
     protected int snapRetainCount = 3;
     protected int purgeInterval = 0;
     protected boolean syncEnabled = true;
-
+    // 配置文件中的内容
     protected String initialConfig;
 
     protected LearnerType peerType = LearnerType.PARTICIPANT;
@@ -173,30 +182,36 @@ public class QuorumPeerConfig {
         LOG.info("Reading configuration from: " + path);
 
         try {
+            // 根据路径，创建一个配置文件
             File configFile = (new VerifyingFileFactory.Builder(LOG)
                 .warnForRelativePath()
                 .failForNonExistingPath()
                 .build()).create(path);
 
+            // 创建一个属性对象
             Properties cfg = new Properties();
             FileInputStream in = new FileInputStream(configFile);
             try {
+                // 加载配置文件
                 cfg.load(in);
                 configFileStr = path;
             } finally {
+                // 关闭流
                 in.close();
             }
 
             /* Read entire config file as initial configuration */
+            // 初始配置字符串，配置文件中的内容
             initialConfig = new String(Files.readAllBytes(configFile.toPath()));
 
+            // 解析属性文件
             parseProperties(cfg);
         } catch (IOException e) {
             throw new ConfigException("Error processing " + path, e);
         } catch (IllegalArgumentException e) {
             throw new ConfigException("Error processing " + path, e);
         }
-
+        // dynamicConfigFileStr 默认为空
         if (dynamicConfigFileStr != null) {
             try {
                 Properties dynamicCfg = new Properties();
@@ -270,26 +285,36 @@ public class QuorumPeerConfig {
     }
 
     /**
+     * // 从属性文件中，解析得到配置
      * Parse config from a Properties.
      * @param zkProp Properties to parse from.
      * @throws IOException
      * @throws ConfigException
      */
     public void parseProperties(Properties zkProp) throws IOException, ConfigException {
+        // 客户端端口
         int clientPort = 0;
         int secureClientPort = 0;
         int observerMasterPort = 0;
         String clientPortAddress = null;
         String secureClientPortAddress = null;
         VerifyingFileFactory vff = new VerifyingFileFactory.Builder(LOG).warnForRelativePath().build();
+        // [clientPort=2181,
+        // dataDir=/Users/h__d/Documents/git-repository/zookeeper-3.6.0/data,
+        // syncLimit=5, initLimit=10, tickTime=2000]
+
+        // 遍历属性配置
         for (Entry<Object, Object> entry : zkProp.entrySet()) {
             String key = entry.getKey().toString().trim();
             String value = entry.getValue().toString().trim();
             if (key.equals("dataDir")) {
+                // 得到数据目录
                 dataDir = vff.create(value);
             } else if (key.equals("dataLogDir")) {
+                // 得到数据日志目录
                 dataLogDir = vff.create(value);
             } else if (key.equals("clientPort")) {
+                // 得到客户端端口
                 clientPort = Integer.parseInt(value);
             } else if (key.equals("localSessionsEnabled")) {
                 localSessionsEnabled = Boolean.parseBoolean(value);
@@ -405,6 +430,7 @@ public class QuorumPeerConfig {
             } else if (key.equals("multiAddress.reachabilityCheckEnabled")) {
                 multiAddressReachabilityCheckEnabled = Boolean.parseBoolean(value);
             } else {
+                // 设置为系统属性
                 System.setProperty("zookeeper." + key, value);
             }
         }

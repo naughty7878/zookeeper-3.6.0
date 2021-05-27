@@ -89,7 +89,7 @@ import org.slf4j.LoggerFactory;
  * outstandingRequests, so that it can take into account transactions that are
  * in the queue to be applied when generating a transaction.
  */
-public class PrepRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
+    public class PrepRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrepRequestProcessor.class);
 
@@ -98,7 +98,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
      * should never be used otherwise
      */
     private static boolean failCreate = false;
-
+    // 提交请求队列
     LinkedBlockingQueue<Request> submittedRequests = new LinkedBlockingQueue<Request>();
 
     private final RequestProcessor nextProcessor;
@@ -136,6 +136,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
         try {
             while (true) {
                 ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUE_SIZE.add(submittedRequests.size());
+                // 从提交请求队列获取请求
                 Request request = submittedRequests.take();
                 ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUE_TIME
                     .add(Time.currentElapsedTime() - request.prepQueueStartTime);
@@ -151,6 +152,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
                 }
 
                 request.prepStartTime = Time.currentElapsedTime();
+                // 处理请求
                 pRequest(request);
             }
         } catch (Exception e) {
@@ -754,6 +756,10 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
     }
 
     /**
+     *
+     *  此方法将在ProcessRequestThread内部调用，ProcessRequestThread是一个
+     *  singleton，因此将有一个线程调用此代码。
+     *
      * This method will be called inside the ProcessRequestThread, which is a
      * singleton, so there will be a single thread calling this code.
      *
@@ -766,6 +772,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
         request.setTxn(null);
 
         try {
+            // 根据请求类型不同，进行不同的逻辑
             switch (request.type) {
             case OpCode.createContainer:
             case OpCode.create:
@@ -1038,7 +1045,9 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements Req
     }
 
     public void processRequest(Request request) {
+        // 开始⌚️
         request.prepQueueStartTime = Time.currentElapsedTime();
+        // 将请求添加到 提交请求队列中
         submittedRequests.add(request);
         ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUED.add(1);
     }

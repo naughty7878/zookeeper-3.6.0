@@ -36,13 +36,18 @@ public abstract class MetricsProviderBootstrap {
         String metricsProviderClassName,
         Properties configuration) throws MetricsProviderLifeCycleException {
         try {
+            // 根据类名的到Class
             Class<?> clazz = Class.forName(
                 metricsProviderClassName,
                 true,
                 Thread.currentThread().getContextClassLoader());
+            // 反射创建 度量提供者
             MetricsProvider metricsProvider = (MetricsProvider) clazz.getConstructor().newInstance();
+            // 设置配置
             metricsProvider.configure(configuration);
+            // 启用 度量提供者
             metricsProvider.start();
+            // 返回
             return metricsProvider;
         } catch (ClassNotFoundException
             | IllegalAccessException

@@ -96,9 +96,10 @@ public class JettyAdminServer implements AdminServer {
 
         this.port = port;
         this.idleTimeout = timeout;
+        // 路径
         this.commandUrl = commandUrl;
         this.address = address;
-
+        // 创建服务器
         server = new Server();
         ServerConnector connector = null;
 

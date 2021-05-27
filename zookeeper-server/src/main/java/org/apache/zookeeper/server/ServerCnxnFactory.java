@@ -127,6 +127,7 @@ public abstract class ServerCnxnFactory {
     }
 
     public void startup(ZooKeeperServer zkServer) throws IOException, InterruptedException {
+        // 启动
         startup(zkServer, true);
     }
 
@@ -142,7 +143,7 @@ public abstract class ServerCnxnFactory {
     public abstract void shutdown();
 
     public abstract void start();
-
+    // ZK服务
     protected ZooKeeperServer zkServer;
     public final void setZooKeeperServer(ZooKeeperServer zks) {
         this.zkServer = zks;
@@ -158,11 +159,14 @@ public abstract class ServerCnxnFactory {
     public abstract void closeAll(ServerCnxn.DisconnectReason reason);
 
     public static ServerCnxnFactory createFactory() throws IOException {
+        // 获取系统属性 zookeeper.serverCnxnFactory
         String serverCnxnFactoryName = System.getProperty(ZOOKEEPER_SERVER_CNXN_FACTORY);
+        // 默认空
         if (serverCnxnFactoryName == null) {
             serverCnxnFactoryName = NIOServerCnxnFactory.class.getName();
         }
         try {
+            // 反射生产服务工厂对象
             ServerCnxnFactory serverCnxnFactory = (ServerCnxnFactory) Class.forName(serverCnxnFactoryName)
                                                                            .getDeclaredConstructor()
                                                                            .newInstance();

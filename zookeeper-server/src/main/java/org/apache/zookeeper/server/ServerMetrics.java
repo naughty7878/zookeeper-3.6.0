@@ -60,6 +60,7 @@ public final class ServerMetrics {
 
     public static void metricsProviderInitialized(MetricsProvider metricsProvider) {
         LOG.info("ServerMetrics initialized with provider {}", metricsProvider);
+        // 创建服务器度量对象
         CURRENT = new ServerMetrics(metricsProvider);
     }
 

@@ -27,7 +27,7 @@ import org.apache.zookeeper.server.ZooKeeperServer.State;
  * shutdown latch.
  */
 class ZooKeeperServerShutdownHandler {
-
+    // 关闭统计计数器
     private final CountDownLatch shutdownLatch;
 
     ZooKeeperServerShutdownHandler(CountDownLatch shutdownLatch) {
@@ -41,6 +41,7 @@ class ZooKeeperServerShutdownHandler {
      */
     void handle(State state) {
         if (state == State.ERROR || state == State.SHUTDOWN) {
+            // 关闭统计计数器，计数关闭
             shutdownLatch.countDown();
         }
     }

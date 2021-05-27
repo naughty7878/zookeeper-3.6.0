@@ -156,7 +156,7 @@ public class FileTxnLog implements TxnLog, Closeable {
     private final Queue<FileOutputStream> streamsToFlush = new ArrayDeque<>();
     File logFileWrite = null;
     private FilePadding filePadding = new FilePadding();
-
+    // 服务器状态
     private ServerStats serverStats;
 
     private volatile long syncElapsedMS = -1L;

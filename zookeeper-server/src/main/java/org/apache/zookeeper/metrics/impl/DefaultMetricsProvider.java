@@ -37,6 +37,8 @@ import org.apache.zookeeper.server.metric.AvgMinMaxPercentileCounterSet;
 import org.apache.zookeeper.server.metric.SimpleCounter;
 
 /**
+ * MetricsProvider是一个收集度量并向外部设施发布当前值的系统
+ *
  * Default implementation of {@link MetricsProvider}.<br>
  * It does not implement a real hierarchy of contexts, but metrics are flattened
  * in a single namespace.<br>

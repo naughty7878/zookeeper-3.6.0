@@ -50,7 +50,9 @@ public class ServerConfig {
     protected int minSessionTimeout = -1;
     /** defaults to -1 if not set explicitly */
     protected int maxSessionTimeout = -1;
+    // 度量提供者类名
     protected String metricsProviderClassName = DefaultMetricsProvider.class.getName();
+    // 度量提供者配置
     protected Properties metricsProviderConfiguration = new Properties();
     /** defaults to -1 if not set explicitly */
     protected int listenBacklog = -1;
@@ -92,7 +94,10 @@ public class ServerConfig {
      * @throws ConfigException error processing configuration
      */
     public void parse(String path) throws ConfigException {
+
+        // 创建配置对象
         QuorumPeerConfig config = new QuorumPeerConfig();
+        // 解析参数
         config.parse(path);
 
         // let qpconfig parse the file and then pull the stuff we are

@@ -58,6 +58,7 @@ public class AdminServerFactory {
                 LOG.warn("Unable to load jetty, not starting JettyAdminServer", e);
             }
         }
+        // 创建动态管理服务对象
         return new DummyAdminServer();
     }
 

@@ -69,11 +69,11 @@ public class Request {
         this.cnxn = null;
         this.authInfo = null;
     }
-
+    // sessionID
     public final long sessionId;
 
     public final int cxid;
-
+    // 请求类型
     public final int type;
 
     public final ByteBuffer request;
