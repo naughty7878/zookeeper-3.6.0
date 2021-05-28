@@ -63,6 +63,7 @@ tmp/**/*
 *.patch
 *.swp
 .ant-targets-build.xml
+*.cfg.dynamic.next
 
 # C
 tags
