@@ -223,8 +223,10 @@ public class Learner {
     protected QuorumServer findLeader() {
         QuorumServer leaderServer = null;
         // Find the leader by id
+        // 获取当前自己认为的Leader选票
         Vote current = self.getCurrentVote();
         for (QuorumServer s : self.getView().values()) {
+            // 找到对应的Leader
             if (s.id == current.getId()) {
                 // Ensure we have the leader's correct IP address before
                 // attempting to connect.
@@ -273,8 +275,11 @@ public class Learner {
             addresses = multiAddr.getAllAddresses();
         }
         ExecutorService executor = Executors.newFixedThreadPool(addresses.size());
+        // 创建计数阀
         CountDownLatch latch = new CountDownLatch(addresses.size());
+
         AtomicReference<Socket> socket = new AtomicReference<>(null);
+        // 创建Leader连接线程，提交到线程池中
         addresses.stream().map(address -> new LeaderConnector(address, socket, latch)).forEach(executor::submit);
 
         try {
@@ -321,6 +326,7 @@ public class Learner {
         public void run() {
             try {
                 Thread.currentThread().setName("LeaderConnector-" + address);
+                // 连接Leader，获取Socket
                 Socket sock = connectToLeader();
 
                 if (sock != null && sock.isConnected()) {
@@ -340,6 +346,7 @@ public class Learner {
         }
 
         private Socket connectToLeader() throws IOException, X509Exception, InterruptedException {
+            // 创建Socket
             Socket sock = createSocket();
 
             // leader connection timeout defaults to tickTime * initLimit
@@ -362,7 +369,8 @@ public class Learner {
                         LOG.error("connectToLeader exceeded on retries.");
                         throw new IOException("connectToLeader exceeded on retries.");
                     }
-
+                    // 建立socket连接
+                    // address = /127.0.0.1:14888
                     sockConnect(sock, address, Math.min(connectTimeout, remainingTimeout));
                     if (self.isSslQuorum()) {
                         ((SSLSocket) sock).startHandshake();

@@ -44,6 +44,7 @@ public class ServerConfig {
     protected InetSocketAddress secureClientPortAddress;
     protected File dataDir;
     protected File dataLogDir;
+    // CS通信心跳时间
     protected int tickTime = ZooKeeperServer.DEFAULT_TICK_TIME;
     protected int maxClientCnxns;
     /** defaults to -1 if not set explicitly */

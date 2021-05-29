@@ -161,8 +161,10 @@ public class QuorumPeerMain {
         }
 
         LOG.info("Starting quorum peer");
+        // 度量提供者 对象
         MetricsProvider metricsProvider;
         try {
+            // 创建 度量提供者 对象
             metricsProvider = MetricsProviderBootstrap.startMetricsProvider(
                 config.getMetricsProviderClassName(),
                 config.getMetricsProviderConfiguration());
@@ -170,6 +172,7 @@ public class QuorumPeerMain {
             throw new IOException("Cannot boot MetricsProvider " + config.getMetricsProviderClassName(), error);
         }
         try {
+            // 度量提供者初始化
             ServerMetrics.metricsProviderInitialized(metricsProvider);
             ServerCnxnFactory cnxnFactory = null;
             ServerCnxnFactory secureCnxnFactory = null;
@@ -186,15 +189,18 @@ public class QuorumPeerMain {
                 secureCnxnFactory.configure(config.getSecureClientPortAddress(), config.getMaxClientCnxns(), config.getClientPortListenBacklog(), true);
             }
 
-            // 获取 quorumPeer 核心对象
+            // 获取 议会成员 核心对象
             quorumPeer = getQuorumPeer();
+            // 设置文件事务快照记录器
             quorumPeer.setTxnFactory(new FileTxnSnapLog(config.getDataLogDir(), config.getDataDir()));
             quorumPeer.enableLocalSessions(config.areLocalSessionsEnabled());
             quorumPeer.enableLocalSessionsUpgrading(config.isLocalSessionsUpgradingEnabled());
             //quorumPeer.setQuorumPeers(config.getAllMembers());
-            // 选举类型
+            // 设置选举类型
             quorumPeer.setElectionType(config.getElectionAlg());
+            // 服务器ID
             quorumPeer.setMyid(config.getServerId());
+            // CS通信心跳时间
             quorumPeer.setTickTime(config.getTickTime());
             quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
             quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout());
@@ -204,12 +210,15 @@ public class QuorumPeerMain {
             quorumPeer.setObserverMasterPort(config.getObserverMasterPort());
             quorumPeer.setConfigFileName(config.getConfigFilename());
             quorumPeer.setClientPortListenBacklog(config.getClientPortListenBacklog());
+            // 设置ZK数据库
             quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
             quorumPeer.setQuorumVerifier(config.getQuorumVerifier(), false);
             if (config.getLastSeenQuorumVerifier() != null) {
                 quorumPeer.setLastSeenQuorumVerifier(config.getLastSeenQuorumVerifier(), false);
             }
+            // 初始化配置数据库,添加配置信息
             quorumPeer.initConfigInZKDatabase();
+            // 设置连接工厂
             quorumPeer.setCnxnFactory(cnxnFactory);
             quorumPeer.setSecureCnxnFactory(secureCnxnFactory);
             quorumPeer.setSslQuorum(config.isSslQuorum());
@@ -234,6 +243,7 @@ public class QuorumPeerMain {
                 quorumPeer.setQuorumLearnerLoginContext(config.quorumLearnerLoginContext);
             }
             quorumPeer.setQuorumCnxnThreadsSize(config.quorumCnxnThreadsSize);
+            // 初始化议会成员对象
             quorumPeer.initialize();
 
             if (config.jvmPauseMonitorToRun) {
@@ -243,6 +253,7 @@ public class QuorumPeerMain {
             // 启动核心线程
             quorumPeer.start();
             ZKAuditProvider.addZKStartStopAuditLog();
+            // join到当前线程
             quorumPeer.join();
         } catch (InterruptedException e) {
             // warn, but generally this is ok
@@ -260,6 +271,7 @@ public class QuorumPeerMain {
 
     // @VisibleForTesting
     protected QuorumPeer getQuorumPeer() throws SaslException {
+        // 创建议会成员对象
         return new QuorumPeer();
     }
 

@@ -112,6 +112,7 @@ public class DataTree {
     private final AtomicLong nodeDataSize = new AtomicLong(0);
 
     /** the root of zookeeper tree */
+    // zookeeper的根
     private static final String rootZookeeper = "/";
 
     /** the zookeeper nodes that acts as the management and status node **/
@@ -284,6 +285,7 @@ public class DataTree {
 
     DataTree(DigestCalculator digestCalculator) {
         this.digestCalculator = digestCalculator;
+        // 创建一个节点集合
         nodes = new NodeHashMapImpl(digestCalculator);
 
         /* Rather than fight it, let root have an alias */
@@ -291,9 +293,12 @@ public class DataTree {
         nodes.putWithoutDigest(rootZookeeper, root);
 
         /** add the proc node and quota node */
+        // 添加proc节点和quota节点
+        // proc节点 = /zookeeper
         root.addChild(procChildZookeeper);
         nodes.put(procZookeeper, procDataNode);
 
+        // quota节点 = /zookeeper/quota
         procDataNode.addChild(quotaChildZookeeper);
         nodes.put(quotaZookeeper, quotaDataNode);
 
@@ -310,6 +315,7 @@ public class DataTree {
     }
 
     /**
+     * 添加 /zookeeper/config  节点
      * create a /zookeeper/config node for maintaining the configuration (membership and quorum system) info for
      * zookeeper
      */
@@ -320,7 +326,7 @@ public class DataTree {
         } else {
             assert false : "There's no /zookeeper znode - this should never happen.";
         }
-
+        // config节点 = /zookeeper/config
         nodes.put(configZookeeper, new DataNode(new byte[0], -1L, new StatPersisted()));
         try {
             // Reconfig node is access controlled by default (ZOOKEEPER-2014).

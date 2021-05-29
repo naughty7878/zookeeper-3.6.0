@@ -100,7 +100,7 @@ import org.slf4j.LoggerFactory;
     private static boolean failCreate = false;
     // 提交请求队列
     LinkedBlockingQueue<Request> submittedRequests = new LinkedBlockingQueue<Request>();
-
+    // 下一个请求处理器
     private final RequestProcessor nextProcessor;
     private final boolean digestEnabled;
     private DigestCalculator digestCalculator;
@@ -948,6 +948,7 @@ import org.slf4j.LoggerFactory;
         }
         request.zxid = zks.getZxid();
         ServerMetrics.getMetrics().PREP_PROCESS_TIME.add(Time.currentElapsedTime() - request.prepStartTime);
+        // 下一个请求处理器处理请求
         nextProcessor.processRequest(request);
     }
 

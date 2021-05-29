@@ -85,6 +85,7 @@ public class QuorumPeerConfig {
     protected String dynamicConfigFileStr = null;
     // 配置文件路径
     protected String configFileStr = null;
+    // CS通信心跳时间
     protected int tickTime = ZooKeeperServer.DEFAULT_TICK_TIME;
     protected int maxClientCnxns = 60;
     /** defaults to -1 if not set explicitly */
@@ -103,6 +104,7 @@ public class QuorumPeerConfig {
     protected int initLimit;
     protected int syncLimit;
     protected int connectToLearnerMasterLimit;
+    // 选举算法
     protected int electionAlg = 3;
     protected int electionPort = 2182;
     protected boolean quorumListenOnAllIPs = false;

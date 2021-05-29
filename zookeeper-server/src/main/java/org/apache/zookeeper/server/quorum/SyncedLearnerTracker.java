@@ -52,6 +52,7 @@ public class SyncedLearnerTracker {
 
     public boolean hasAllQuorums() {
         for (QuorumVerifierAcksetPair qvAckset : qvAcksetPairs) {
+            // 判断数量是否大于半数以上选举成员数量
             if (!qvAckset.getQuorumVerifier().containsQuorum(qvAckset.getAckset())) {
                 return false;
             }
@@ -72,6 +73,7 @@ public class SyncedLearnerTracker {
     public static class QuorumVerifierAcksetPair {
 
         private final QuorumVerifier qv;
+        // ackSet集合
         private final HashSet<Long> ackset;
 
         public QuorumVerifierAcksetPair(QuorumVerifier qv, HashSet<Long> ackset) {

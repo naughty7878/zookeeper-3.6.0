@@ -34,9 +34,13 @@ public class Vote {
     public Vote(long id, long zxid, long peerEpoch) {
         this.version = 0x0;
         this.id = id;
+        // 事务id
         this.zxid = zxid;
+        // 选举纪元
         this.electionEpoch = -1;
+        // 成员纪元
         this.peerEpoch = peerEpoch;
+        // 状态
         this.state = ServerState.LOOKING;
     }
 
@@ -70,7 +74,7 @@ public class Vote {
     private final int version;
 
     private final long id;
-
+    // 事务id
     private final long zxid;
 
     private final long electionEpoch;

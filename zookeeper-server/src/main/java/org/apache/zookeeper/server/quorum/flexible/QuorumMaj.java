@@ -38,6 +38,7 @@ public class QuorumMaj implements QuorumVerifier {
     private Map<Long, QuorumServer> votingMembers = new HashMap<Long, QuorumServer>();
     private Map<Long, QuorumServer> observingMembers = new HashMap<Long, QuorumServer>();
     private long version = 0;
+    // 半数选举成员
     private int half;
 
     public int hashCode() {
@@ -78,6 +79,7 @@ public class QuorumMaj implements QuorumVerifier {
                 observingMembers.put(Long.valueOf(qs.id), qs);
             }
         }
+        // 选举成员数量 除以2
         half = votingMembers.size() / 2;
     }
 

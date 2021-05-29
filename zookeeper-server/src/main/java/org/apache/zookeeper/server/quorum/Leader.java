@@ -283,13 +283,15 @@ public class Leader extends LearnerMaster {
         this.self = self;
         this.proposalStats = new BufferStats();
 
+        // 内部socket地址
         Set<InetSocketAddress> addresses;
         if (self.getQuorumListenOnAllIPs()) {
             addresses = self.getQuorumAddress().getWildcardAddresses();
         } else {
             addresses = self.getQuorumAddress().getAllAddresses();
         }
-
+        // addresses = [/127.0.0.1:2888]
+        // 根据地址，创建serverSockets，添加到集合中
         addresses.stream()
           .map(address -> createServerSocket(address, self.shouldUsePortUnification(), self.isSslQuorum()))
           .filter(Optional::isPresent)
@@ -309,9 +311,11 @@ public class Leader extends LearnerMaster {
             if (portUnification || sslQuorum) {
                 serverSocket = new UnifiedServerSocket(self.getX509Util(), portUnification);
             } else {
+                // 创建ServerSocket
                 serverSocket = new ServerSocket();
             }
             serverSocket.setReuseAddress(true);
+            // 绑定地址
             serverSocket.bind(address);
             return Optional.of(serverSocket);
         } catch (IOException e) {
@@ -446,13 +450,17 @@ public class Leader extends LearnerMaster {
         @Override
         public void run() {
             if (!stop.get() && !serverSockets.isEmpty()) {
+                // 创建线程池
                 ExecutorService executor = Executors.newFixedThreadPool(serverSockets.size());
+                // 创建倒计数阀门
                 CountDownLatch latch = new CountDownLatch(serverSockets.size());
 
+                // 创建LearnerCnxAcceptorHandler对象，并运行
                 serverSockets.forEach(serverSocket ->
                         executor.submit(new LearnerCnxAcceptorHandler(serverSocket, latch)));
 
                 try {
+                    // 等待倒计数阀门
                     latch.await();
                 } catch (InterruptedException ie) {
                     LOG.error("Interrupted while sleeping in LearnerCnxAcceptor.", ie);
@@ -490,6 +498,7 @@ public class Leader extends LearnerMaster {
                     Thread.currentThread().setName("LearnerCnxAcceptorHandler-" + serverSocket.getLocalSocketAddress());
 
                     while (!stop.get()) {
+                        // 接收连接
                         acceptConnections();
                     }
                 } catch (Exception e) {
@@ -507,6 +516,7 @@ public class Leader extends LearnerMaster {
                 Socket socket = null;
                 boolean error = false;
                 try {
+                    // 接收socket连接
                     socket = serverSocket.accept();
 
                     // start with the initLimit, once the ack is processed
@@ -515,7 +525,9 @@ public class Leader extends LearnerMaster {
                     socket.setTcpNoDelay(nodelay);
 
                     BufferedInputStream is = new BufferedInputStream(socket.getInputStream());
+                    // 创建追随者理器
                     LearnerHandler fh = new LearnerHandler(socket, is, Leader.this);
+                    // 启用追随者理器
                     fh.start();
                 } catch (SocketException e) {
                     error = true;
@@ -587,13 +599,16 @@ public class Leader extends LearnerMaster {
         try {
             self.setZabState(QuorumPeer.ZabState.DISCOVERY);
             self.tick.set(0);
+            // 加载服务数据
             zk.loadData();
 
             leaderStateSummary = new StateSummary(self.getCurrentEpoch(), zk.getLastProcessedZxid());
 
             // Start thread that waits for connection requests from
             // new followers.
+            // 启动等待来自新的追随者的连接请求的线程
             cnxAcceptor = new LearnerCnxAcceptor();
+            // 启动线程
             cnxAcceptor.start();
 
             long epoch = getEpochToPropose(self.getId(), self.getAcceptedEpoch());
@@ -680,7 +695,7 @@ public class Leader extends LearnerMaster {
                 }
                 return;
             }
-
+            // 启用ZK服务
             startZkServer();
 
             /**
@@ -706,6 +721,7 @@ public class Leader extends LearnerMaster {
             }
 
             self.setZabState(QuorumPeer.ZabState.BROADCAST);
+            // 设置后台管理服务的zk服务
             self.adminServer.setZooKeeperServer(zk);
 
             // Everything is a go, simply start counting the ticks
@@ -746,7 +762,7 @@ public class Leader extends LearnerMaster {
                     }
 
                     syncedAckSet.addAck(self.getId());
-
+                    // 获取followers
                     for (LearnerHandler f : getLearners()) {
                         if (f.synced()) {
                             syncedAckSet.addAck(f.getSid());
@@ -770,7 +786,9 @@ public class Leader extends LearnerMaster {
                     }
                     tickSkip = !tickSkip;
                 }
+                // 获取followers
                 for (LearnerHandler f : getLearners()) {
+                    // ping follower节点
                     f.ping();
                 }
             }
@@ -1519,6 +1537,7 @@ public class Leader extends LearnerMaster {
         }
 
         leaderStartTime = Time.currentElapsedTime();
+        // 启动zk服务
         zk.startup();
         /*
          * Update the election vote here to ensure that all members of the
