@@ -66,7 +66,7 @@ public class NIOServerCnxn extends ServerCnxn {
     private final SelectionKey sk;
 
     private boolean initialized;
-    // 缓存
+    // 长度缓存
     private final ByteBuffer lenBuffer = ByteBuffer.allocate(4);
     // 输入缓存
     private ByteBuffer incomingBuffer = lenBuffer;
@@ -118,6 +118,7 @@ public class NIOServerCnxn extends ServerCnxn {
              */
             if (bb != ServerCnxnFactory.closeConn) {
                 if (sock.isOpen()) {
+                    // 切换到阻塞模式
                     sock.configureBlocking(true);
                     sock.write(bb);
                 }
