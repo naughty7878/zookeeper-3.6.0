@@ -161,6 +161,7 @@ public class FinalRequestProcessor implements RequestProcessor {
         // Notify ZooKeeperServer that the request has finished so that it can
         // update any request accounting/throttling limits
         zks.decInProcess();
+
         zks.requestFinished(request);
         Code err = Code.OK;
         Record rsp = null;
@@ -268,6 +269,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                             subResult = new GetChildrenResult(((GetChildrenResponse) rec).getChildren());
                             break;
                         case OpCode.getData:
+                            // 处理获取数据请求
                             rec = handleGetDataRequest(readOp.toRequestRecord(), cnxn, request.authInfo);
                             GetDataResponse gdr = (GetDataResponse) rec;
                             subResult = new GetDataResult(gdr.getData(), gdr.getStat());
@@ -581,12 +583,14 @@ public class FinalRequestProcessor implements RequestProcessor {
             err = Code.MARSHALLINGERROR;
         }
 
+        // 创建回复头对象
         ReplyHeader hdr = new ReplyHeader(request.cxid, lastZxid, err.intValue());
 
         updateStats(request, lastOp, lastZxid);
 
         try {
             if (path == null || rsp == null) {
+                // 发送响应
                 cnxn.sendResponse(hdr, rsp, "response");
             } else {
                 int opCode = request.type;
@@ -608,6 +612,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                         break;
                     }
                     default:
+                        // 发送响应
                         cnxn.sendResponse(hdr, rsp, "response");
                 }
             }
@@ -636,12 +641,15 @@ public class FinalRequestProcessor implements RequestProcessor {
     private Record handleGetDataRequest(Record request, ServerCnxn cnxn, List<Id> authInfo) throws KeeperException, IOException {
         GetDataRequest getDataRequest = (GetDataRequest) request;
         String path = getDataRequest.getPath();
+        // 根据路径获取节点
         DataNode n = zks.getZKDatabase().getNode(path);
         if (n == null) {
             throw new KeeperException.NoNodeException();
         }
         zks.checkACL(cnxn, zks.getZKDatabase().aclForNode(n), ZooDefs.Perms.READ, authInfo, path, null);
         Stat stat = new Stat();
+        // 判断请求，是否需要监听，监听则传入客户端连接
+        // 根据路径获取数据
         byte[] b = zks.getZKDatabase().getData(path, stat, getDataRequest.getWatch() ? cnxn : null);
         return new GetDataResponse(b, stat);
     }

@@ -163,11 +163,13 @@ public class Follower extends Learner {
      * @throws IOException
      */
     protected void processPacket(QuorumPacket qp) throws Exception {
+        // 根据类型进行不同的处理
         switch (qp.getType()) {
         case Leader.PING:
             ping(qp);
             break;
         case Leader.PROPOSAL:
+            // Leader发的提议
             ServerMetrics.getMetrics().LEARNER_PROPOSAL_RECEIVED_COUNT.add(1);
             TxnLogEntry logEntry = SerializeUtils.deserializeTxn(qp.getData());
             TxnHeader hdr = logEntry.getHeader();
@@ -186,7 +188,7 @@ public class Follower extends Learner {
                 QuorumVerifier qv = self.configFromString(new String(setDataTxn.getData()));
                 self.setLastSeenQuorumVerifier(qv, true);
             }
-
+            // 记录请求
             fzk.logRequest(hdr, txn, digest);
             if (hdr != null) {
                 /*
@@ -207,7 +209,9 @@ public class Follower extends Learner {
             }
             break;
         case Leader.COMMIT:
+            // Leader发的提交
             ServerMetrics.getMetrics().LEARNER_COMMIT_RECEIVED_COUNT.add(1);
+            // 根据事务id提交
             fzk.commit(qp.getZxid());
             if (om != null) {
                 final long startTime = Time.currentElapsedTime();

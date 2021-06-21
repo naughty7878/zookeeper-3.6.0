@@ -172,7 +172,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     private ZKDatabase zkDb;
     private ResponseCache readResponseCache;
     private ResponseCache getChildrenResponseCache;
-    // id
+    // id 即 zid生成器
     private final AtomicLong hzxid = new AtomicLong(0);
     public static final Exception ok = new Exception("No prob");
     // 请求处理器
@@ -183,6 +183,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     /* contains the configuration file content read at startup */
     // 初始配置字符串
     protected String initialConfig;
+    // 请求路径指标收集器
     private final RequestPathMetricsCollector requestPathMetricsCollector;
 
     private boolean localSessionEnabled = false;
@@ -202,6 +203,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     private static final long superSecret = 0XB3415C00L;
 
     private final AtomicInteger requestsInProcess = new AtomicInteger(0);
+    // 重要的改变记录集合
     final Deque<ChangeRecord> outstandingChanges = new ArrayDeque<>();
     // this data structure must be accessed under the outstandingChanges lock
     final Map<String, ChangeRecord> outstandingChangesForPath = new HashMap<String, ChangeRecord>();
@@ -338,9 +340,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             ResponseCache.DEFAULT_RESPONSE_CACHE_SIZE));
         // 初始配置字符串
         this.initialConfig = initialConfig;
-
+        // 创建请求路径指标收集器
         this.requestPathMetricsCollector = new RequestPathMetricsCollector();
-
+        // 初始化最大请求截流设置
         this.initLargeRequestThrottlingSettings();
 
         LOG.info(
@@ -577,7 +579,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     public SessionTracker getSessionTracker() {
         return sessionTracker;
     }
-
+    // 获取下一个Zxid 事务i
     long getNextZxid() {
         return hzxid.incrementAndGet();
     }
@@ -690,7 +692,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         registerJMX();
         // 启用JVM暂停监控器
         startJvmPauseMonitor();
-        // 注册度量
+        // 注册指标
         registerMetrics();
         // 设置状态
         setState(State.RUNNING);
@@ -1489,7 +1491,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     private void initLargeRequestThrottlingSettings() {
+        // 设置最大请求字节数
         setLargeRequestMaxBytes(Integer.getInteger("zookeeper.largeRequestMaxBytes", largeRequestMaxBytes));
+        // 设置请求最小线程数
         setLargeRequestThreshold(Integer.getInteger("zookeeper.largeRequestThreshold", -1));
     }
 
@@ -1754,6 +1758,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             return new ProcessTxnResult();
         }
         synchronized (outstandingChanges) {
+            // 在数据库中处理事务
             ProcessTxnResult rc = processTxnInDB(hdr, request.getTxn(), request.getTxnDigest());
 
             // request.hdr is set for write requests, which are the only ones
@@ -1804,6 +1809,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         if (hdr == null) {
             return new ProcessTxnResult();
         } else {
+            // 获取ZK数据库对象，处理事务
             return getZKDatabase().processTxn(hdr, txn, digest);
         }
     }
@@ -1841,11 +1847,13 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     protected void registerMetrics() {
+        // 指标上下文
         MetricsContext rootContext = ServerMetrics.getMetrics().getMetricsProvider().getRootContext();
 
         final ZKDatabase zkdb = this.getZKDatabase();
         final ServerStats stats = this.serverStats();
 
+        // 注册各种指标
         rootContext.registerGauge("avg_latency", stats::getAvgLatency);
 
         rootContext.registerGauge("max_latency", stats::getMaxLatency);

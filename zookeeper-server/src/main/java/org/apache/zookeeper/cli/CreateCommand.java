@@ -56,6 +56,7 @@ public class CreateCommand extends CliCommand {
     public CliCommand parse(String[] cmdArgs) throws CliParseException {
         Parser parser = new PosixParser();
         try {
+            // 解析参数
             cl = parser.parse(options, cmdArgs);
         } catch (ParseException ex) {
             throw new CliParseException(ex);
@@ -89,17 +90,22 @@ public class CreateCommand extends CliCommand {
         if (hasT && hasC) {
             throw new MalformedCommandException("TTLs cannot be used with Container znodes");
         }
-
+        // 创建模式
         CreateMode flags;
         if (hasE && hasS) {
+            // 临时有序节点
             flags = CreateMode.EPHEMERAL_SEQUENTIAL;
         } else if (hasE) {
+            // 临时节点
             flags = CreateMode.EPHEMERAL;
         } else if (hasS) {
+            // 有序TTL节点 / 有序节点
             flags = hasT ? CreateMode.PERSISTENT_SEQUENTIAL_WITH_TTL : CreateMode.PERSISTENT_SEQUENTIAL;
         } else if (hasC) {
+            // 容器节点
             flags = CreateMode.CONTAINER;
         } else {
+            // 永久TTL节点 / 永久节点
             flags = hasT ? CreateMode.PERSISTENT_WITH_TTL : CreateMode.PERSISTENT;
         }
         if (hasT) {
@@ -110,11 +116,13 @@ public class CreateCommand extends CliCommand {
             }
         }
 
+        // 创建的路径
         String path = args[1];
         byte[] data = null;
         if (args.length > 2) {
             data = args[2].getBytes();
         }
+        // 权限
         List<ACL> acl = ZooDefs.Ids.OPEN_ACL_UNSAFE;
         if (args.length > 3) {
             acl = AclParser.parse(args[3]);
@@ -122,7 +130,9 @@ public class CreateCommand extends CliCommand {
         try {
             String newPath = hasT
                 ? zk.create(path, data, acl, flags, new Stat(), ttl)
+                // 普通创建
                 : zk.create(path, data, acl, flags);
+            // 打印响应
             err.println("Created " + newPath);
         } catch (IllegalArgumentException ex) {
             throw new MalformedPathException(ex.getMessage());

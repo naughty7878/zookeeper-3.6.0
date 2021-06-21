@@ -34,6 +34,7 @@ public class SyncedLearnerTracker {
         boolean change = false;
         for (QuorumVerifierAcksetPair qvAckset : qvAcksetPairs) {
             if (qvAckset.getQuorumVerifier().getVotingMembers().containsKey(sid)) {
+                // 获取ack的set集合，添加sid
                 qvAckset.getAckset().add(sid);
                 change = true;
             }
@@ -73,7 +74,7 @@ public class SyncedLearnerTracker {
     public static class QuorumVerifierAcksetPair {
 
         private final QuorumVerifier qv;
-        // ackSet集合
+        // ackSet集合，存放的就是实例id
         private final HashSet<Long> ackset;
 
         public QuorumVerifierAcksetPair(QuorumVerifier qv, HashSet<Long> ackset) {

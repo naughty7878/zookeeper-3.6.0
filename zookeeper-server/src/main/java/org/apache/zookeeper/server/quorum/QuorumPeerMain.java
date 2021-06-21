@@ -86,7 +86,7 @@ public class QuorumPeerMain {
      * @param args path to the configfile
      */
     public static void main(String[] args) {
-        // 创建一个议会成员主对象
+        // 创建一个议会同辈主对象
         QuorumPeerMain main = new QuorumPeerMain();
         try {
             // 初始化和运行

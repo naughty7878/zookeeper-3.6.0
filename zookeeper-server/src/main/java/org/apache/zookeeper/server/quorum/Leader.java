@@ -426,9 +426,9 @@ public class Leader extends LearnerMaster {
      * Similar to INFORM, only for a reconfig operation.
      */
     static final int INFORMANDACTIVATE = 19;
-
+    // 未完成的提议集合
     final ConcurrentMap<Long, Proposal> outstandingProposals = new ConcurrentHashMap<Long, Proposal>();
-
+    // 应用提议集合
     private final ConcurrentLinkedQueue<Proposal> toBeApplied = new ConcurrentLinkedQueue<Proposal>();
 
     // VisibleForTesting
@@ -923,6 +923,7 @@ public class Leader extends LearnerMaster {
         // in order to be committed, a proposal must be accepted by a quorum.
         //
         // getting a quorum from all necessary configurations.
+        // 判断是否获得半数以上成员的ack
         if (!p.hasAllQuorums()) {
             return false;
         }
@@ -936,9 +937,11 @@ public class Leader extends LearnerMaster {
             LOG.warn("First is {}", (lastCommitted + 1));
         }
 
+        // 移除提议
         outstandingProposals.remove(zxid);
 
         if (p.request != null) {
+            // 添加到提议集合中
             toBeApplied.add(p);
         }
 
@@ -970,12 +973,16 @@ public class Leader extends LearnerMaster {
             //turnOffFollowers();
         } else {
             p.request.logLatency(ServerMetrics.getMetrics().QUORUM_ACK_LATENCY);
+            // 提交事务
             commit(zxid);
+            // 发送inform信息给observers
             inform(p);
         }
+        // 提交处理器处理提交请求
         zk.commitProcessor.commit(p.request);
         if (pendingSyncs.containsKey(zxid)) {
             for (LearnerSyncRequest r : pendingSyncs.remove(zxid)) {
+                // 发送同步信息，给其他节点
                 sendSync(r);
             }
         }
@@ -1027,6 +1034,7 @@ public class Leader extends LearnerMaster {
             // The proposal has already been committed
             return;
         }
+        // 根据事务id，获取提议
         Proposal p = outstandingProposals.get(zxid);
         if (p == null) {
             LOG.warn("Trying to commit future proposal: zxid 0x{} from {}", Long.toHexString(zxid), followerAddr);
@@ -1036,9 +1044,9 @@ public class Leader extends LearnerMaster {
         if (ackLoggingFrequency > 0 && (zxid % ackLoggingFrequency == 0)) {
             p.request.logLatency(ServerMetrics.getMetrics().ACK_LATENCY, Long.toString(sid));
         }
-
+        // 将消息中的sid（实例id），添加到提议中
         p.addAck(sid);
-
+        // 尝试提交提议
         boolean hasCommitted = tryToCommit(p, zxid, followerAddr);
 
         // If p is a reconfiguration, multiple other operations may be ready to be committed,
@@ -1103,10 +1111,13 @@ public class Leader extends LearnerMaster {
             // the zxid of the last write op.
             if (request.getHdr() != null) {
                 long zxid = request.getHdr().getZxid();
+                // 获取提议集合迭代器
                 Iterator<Proposal> iter = leader.toBeApplied.iterator();
                 if (iter.hasNext()) {
                     Proposal p = iter.next();
+                    // 请求事务id 与 处理id 相同
                     if (p.request != null && p.request.zxid == zxid) {
+                        // 删除对应的提议
                         iter.remove();
                         return;
                     }
@@ -1135,7 +1146,9 @@ public class Leader extends LearnerMaster {
      */
     void sendPacket(QuorumPacket qp) {
         synchronized (forwardingFollowers) {
+            // 遍历所有的 forwardingFollowers
             for (LearnerHandler f : forwardingFollowers) {
+                // 添加到发送包队列中
                 f.queuePacket(qp);
             }
         }
@@ -1161,7 +1174,9 @@ public class Leader extends LearnerMaster {
         synchronized (this) {
             lastCommitted = zxid;
         }
+        // 创建COMMIT包
         QuorumPacket qp = new QuorumPacket(Leader.COMMIT, zxid, null, null);
+        // 发送给forwardingFollowers
         sendPacket(qp);
         ServerMetrics.getMetrics().COMMIT_COUNT.add(1);
     }
@@ -1248,8 +1263,9 @@ public class Leader extends LearnerMaster {
 
         byte[] data = SerializeUtils.serializeRequest(request);
         proposalStats.setLastBufferSize(data.length);
+        // 创建一个提议包
         QuorumPacket pp = new QuorumPacket(Leader.PROPOSAL, request.zxid, data, null);
-
+        // 创建提议
         Proposal p = new Proposal();
         p.packet = pp;
         p.request = request;
@@ -1266,9 +1282,11 @@ public class Leader extends LearnerMaster {
             }
 
             LOG.debug("Proposing:: {}", request);
-
+            // 事务ID
             lastProposed = p.packet.getZxid();
+            // 将提议添加到 未完成的提议集合
             outstandingProposals.put(lastProposed, p);
+            // 发送请求数据包
             sendPacket(pp);
         }
         ServerMetrics.getMetrics().PROPOSAL_COUNT.add(1);

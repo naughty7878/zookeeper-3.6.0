@@ -112,9 +112,12 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
     protected final LinkedBlockingQueue<Request> committedRequests = new LinkedBlockingQueue<Request>();
 
     /**
+     *
+     * 在提交之前一直保留的请求。key代表会话ID，值都是会话请求的链接列表。
      * Requests that we are holding until commit comes in. Keys represent
      * session ids, each value is a linked list of the session's requests.
      */
+    //
     protected final Map<Long, Deque<Request>> pendingRequests = new HashMap<>(10000);
 
     /** The number of requests currently being processed */
@@ -214,7 +217,9 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
                 if (requestsToProcess == 0 && !commitIsWaiting) {
                     // Waiting for requests to process
                     synchronized (this) {
+                        // 当请求处理队列为空，提交请求也为空时，进行等待
                         while (!stopped && requestsToProcess == 0 && !commitIsWaiting) {
+                            // 等待
                             wait();
                             commitIsWaiting = !committedRequests.isEmpty();
                             requestsToProcess = queuedRequests.size();
@@ -242,16 +247,22 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
                 while (!stopped
                        && requestsToProcess > 0
                        && (maxReadBatchSize < 0 || readsProcessed <= maxReadBatchSize)
+                        // 从 queuedRequests 获取请求
                        && (request = queuedRequests.poll()) != null) {
                     requestsToProcess--;
+                    // 判断是否是需要提交的请求，添加请求中集合是否包含当前sessionid
                     if (needCommit(request) || pendingRequests.containsKey(request.sessionId)) {
                         // Add request to pending
+                        // 如果是需要提交的请求，将请求添加到集合中
                         Deque<Request> requests = pendingRequests.computeIfAbsent(request.sessionId, sid -> new ArrayDeque<>());
+                        // 将请求添加到集合中
                         requests.addLast(request);
                         ServerMetrics.getMetrics().REQUESTS_IN_SESSION_QUEUE.add(requests.size());
                     } else {
+                        // 如果是follower节点，第一次不出进来，第二次才进来
                         readsProcessed++;
                         numReadQueuedRequests.decrementAndGet();
+                        // 发送给下一个处理器
                         sendToNextProcessor(request);
                     }
                     /*
@@ -304,6 +315,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
                     while (commitIsWaiting && !stopped && commitsToProcess > 0) {
 
                         // Process committed head
+                        // 从提交请求队列中获取请求
                         request = committedRequests.peek();
 
                         /*
@@ -364,6 +376,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
                         commitsProcessed++;
 
                         // Process the write inline.
+                        // 处理写入请求
                         processWrite(request);
 
                         commitIsWaiting = !committedRequests.isEmpty();
@@ -578,9 +591,12 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
             return;
         }
         LOG.debug("Committing request:: {}", request);
+        //  提交接收到的事件
         request.commitRecvTime = Time.currentElapsedTime();
         ServerMetrics.getMetrics().COMMITS_QUEUED.add(1);
+        // 提交到提交队列中
         committedRequests.add(request);
+        // 唤醒其他线程
         wakeup();
     }
 
@@ -590,10 +606,14 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements RequestP
             return;
         }
         LOG.debug("Processing request:: {}", request);
+        // 提交建议开始时间
         request.commitProcQueueStartTime = Time.currentElapsedTime();
+        // 将请求加到队列请求中
         queuedRequests.add(request);
         // If the request will block, add it to the queue of blocking requests
+        // 根据请求类型判断是否需要提交请求
         if (needCommit(request)) {
+            // 将请求加到写请求队列中
             queuedWriteRequests.add(request);
             numWriteQueuedRequests.incrementAndGet();
         } else {

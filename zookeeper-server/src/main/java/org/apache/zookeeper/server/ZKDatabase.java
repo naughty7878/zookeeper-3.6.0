@@ -483,6 +483,7 @@ public class ZKDatabase {
      * datatree/zkdatabase
      */
     public ProcessTxnResult processTxn(TxnHeader hdr, Record txn, TxnDigest digest) {
+        // 数据树处理事务
         return dataTree.processTxn(hdr, txn, digest);
     }
 

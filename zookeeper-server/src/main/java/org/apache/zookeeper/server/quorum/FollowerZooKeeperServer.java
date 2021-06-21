@@ -68,11 +68,15 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
 
     @Override
     protected void setupRequestProcessors() {
+        // 创建最终请求处理器
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
+        // 创建提交处理器
         commitProcessor = new CommitProcessor(finalProcessor, Long.toString(getServerId()), true, getZooKeeperServerListener());
         commitProcessor.start();
+        // 创建跟随者请求处理器，作为第一个请求处理器
         firstProcessor = new FollowerRequestProcessor(this, commitProcessor);
         ((FollowerRequestProcessor) firstProcessor).start();
+        // 创建同步请求处理器
         syncProcessor = new SyncRequestProcessor(this, new SendAckRequestProcessor(getFollower()));
         syncProcessor.start();
     }
@@ -83,8 +87,10 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         Request request = new Request(hdr.getClientId(), hdr.getCxid(), hdr.getType(), hdr, txn, hdr.getZxid());
         request.setTxnDigest(digest);
         if ((request.zxid & 0xffffffffL) != 0) {
+            // 记录请求
             pendingTxns.add(request);
         }
+        // 同步处理器处理器请求
         syncProcessor.processRequest(request);
     }
 

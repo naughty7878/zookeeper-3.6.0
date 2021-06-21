@@ -89,15 +89,15 @@ public class Request {
     public final List<Id> authInfo;
 
     public final long createTime = Time.currentElapsedTime();
-
+    // 预处理队列开始时间
     public long prepQueueStartTime = -1;
-
+    // 预处理开始时间
     public long prepStartTime = -1;
-
+    // 提交建议开始时间
     public long commitProcQueueStartTime = -1;
-
+    // 提交接收时间
     public long commitRecvTime = -1;
-
+    // 同步队列开始时间
     public long syncQueueStartTime;
 
     private Object owner;

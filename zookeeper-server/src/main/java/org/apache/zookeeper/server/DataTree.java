@@ -512,10 +512,13 @@ public class DataTree {
                 parent.stat.setCversion(parentCVersion);
                 parent.stat.setPzxid(zxid);
             }
+            // 创建一个新数据节点
             DataNode child = new DataNode(data, longval, stat);
+            // 添加子节点名
             parent.addChild(childName);
             nodes.postChange(parentName, parent);
             nodeDataSize.addAndGet(getNodeSize(path, child.data));
+            // 将数据节点添加到树中
             nodes.put(path, child);
             EphemeralType ephemeralType = EphemeralType.get(ephemeralOwner);
             if (ephemeralType == EphemeralType.CONTAINER) {
@@ -556,7 +559,9 @@ public class DataTree {
             updateCountBytes(lastPrefix, bytes, 1);
         }
         updateWriteStat(path, bytes);
+        // 触发数据监听器
         dataWatches.triggerWatch(path, Event.EventType.NodeCreated);
+        // 触发子节点监听器
         childWatches.triggerWatch(parentName.equals("") ? "/" : parentName, Event.EventType.NodeChildrenChanged);
     }
 
@@ -870,6 +875,7 @@ public class DataTree {
     public volatile long lastProcessedZxid = 0;
 
     public ProcessTxnResult processTxn(TxnHeader header, Record txn, TxnDigest digest) {
+        // 处理事务
         ProcessTxnResult result = processTxn(header, txn);
         compareDigest(header, txn, digest);
         return result;
@@ -889,10 +895,14 @@ public class DataTree {
             rc.type = header.getType();
             rc.err = 0;
             rc.multiResult = null;
+            // 获取事务类型
             switch (header.getType()) {
             case OpCode.create:
+                // 创建类型
                 CreateTxn createTxn = (CreateTxn) txn;
+                // 获取创建路径
                 rc.path = createTxn.getPath();
+                // 创建节点
                 createNode(
                     createTxn.getPath(),
                     createTxn.getData(),

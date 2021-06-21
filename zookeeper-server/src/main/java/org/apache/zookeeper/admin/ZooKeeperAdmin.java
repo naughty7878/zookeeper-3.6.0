@@ -163,6 +163,7 @@ public class ZooKeeperAdmin extends ZooKeeper {
         int sessionTimeout,
         Watcher watcher,
         boolean canBeReadOnly) throws IOException {
+        // 调用父类的构造方法
         super(connectString, sessionTimeout, watcher, canBeReadOnly);
     }
 

@@ -77,12 +77,16 @@ import org.slf4j.LoggerFactory;
 public class ZooKeeperMain {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperMain.class);
+    // 所有可使用的命令集合
     static final Map<String, String> commandMap = new HashMap<String, String>();
     static final Map<String, CliCommand> commandMapCli = new HashMap<String, CliCommand>();
-
+    // 命令选项
     protected MyCommandOptions cl = new MyCommandOptions();
+    // 历史命令集合
     protected HashMap<Integer, String> history = new HashMap<Integer, String>();
+    // 命令数
     protected int commandCount = 0;
+    // 打印监听事件标识
     protected boolean printWatches = true;
     protected int exitCode = ExitCode.EXECUTION_FINISHED.getValue();
 
@@ -141,8 +145,10 @@ public class ZooKeeperMain {
     private class MyWatcher implements Watcher {
 
         public void process(WatchedEvent event) {
+
             if (getPrintWatches()) {
                 ZooKeeperMain.printMessage("WATCHER::");
+                // 打印事件
                 ZooKeeperMain.printMessage(event.toString());
             }
         }
@@ -161,6 +167,7 @@ public class ZooKeeperMain {
         public static final Pattern ARGS_PATTERN = Pattern.compile("\\s*([^\"\']\\S*|\"[^\"]*\"|'[^']*')\\s*");
         public static final Pattern QUOTED_PATTERN = Pattern.compile("^([\'\"])(.*)(\\1)$");
 
+        // 我的命令选项
         public MyCommandOptions() {
             options.put("server", "localhost:2181");
             options.put("timeout", "30000");
@@ -199,7 +206,9 @@ public class ZooKeeperMain {
             while (it.hasNext()) {
                 String opt = it.next();
                 try {
+                    // 如果参数是-server
                     if (opt.equals("-server")) {
+                        // 将下一个参数作为server的值，放入选项中
                         options.put("server", it.next());
                     } else if (opt.equals("-timeout")) {
                         options.put("timeout", it.next());
@@ -244,7 +253,9 @@ public class ZooKeeperMain {
             if (args.isEmpty()) {
                 return false;
             }
+            // 命令
             command = args.get(0);
+            // 命令参数
             cmdArgs = args;
             return true;
         }
@@ -279,24 +290,32 @@ public class ZooKeeperMain {
         if (zk != null && zk.getState().isAlive()) {
             zk.close();
         }
-
+        // 设置host
         host = newHost;
+        // 是否只读
         boolean readOnly = cl.getOption("readonly") != null;
         if (cl.getOption("secure") != null) {
             System.setProperty(ZKClientConfig.SECURE_CLIENT, "true");
             System.out.println("Secure connection is enabled");
         }
+        // 创建 ZooKeeperAdmin 对象
+        // timeout 默认30s
         zk = new ZooKeeperAdmin(host, Integer.parseInt(cl.getOption("timeout")), new MyWatcher(), readOnly);
     }
 
     public static void main(String[] args) throws CliException, IOException, InterruptedException {
+        // 创建Zookeeper主对象
         ZooKeeperMain main = new ZooKeeperMain(args);
+        // Zookeeper主对象运行
         main.run();
     }
 
     public ZooKeeperMain(String[] args) throws IOException, InterruptedException {
+        // 解析参数
         cl.parseOptions(args);
+        // 打印连接的server 参数值
         System.out.println("Connecting to " + cl.getOption("server"));
+        // 连接zookeeper
         connectToZK(cl.getOption("server"));
     }
 
@@ -313,18 +332,23 @@ public class ZooKeeperMain {
             try {
                 Class<?> consoleC = Class.forName("jline.console.ConsoleReader");
                 Class<?> completorC = Class.forName("org.apache.zookeeper.JLineZNodeCompleter");
-
+                // 能够获取到Class，说明支持JLine
+                // 默认不支持JLine
                 System.out.println("JLine support is enabled");
 
+                // 床控制台读取器对象 ConsoleReader
                 Object console = consoleC.getConstructor().newInstance();
-
+                // 创建 JLineZNodeCompleter
                 Object completor = completorC.getConstructor(ZooKeeper.class).newInstance(zk);
                 Method addCompletor = consoleC.getMethod("addCompleter", Class.forName("jline.console.completer.Completer"));
                 addCompletor.invoke(console, completor);
 
                 String line;
+                // 获取 readLine 方法
                 Method readLine = consoleC.getMethod("readLine", String.class);
+                // 选好调用 readLine 方法，即从控制台获取一行数据
                 while ((line = (String) readLine.invoke(console, getPrompt())) != null) {
+                    // 执行获取的行数据
                     executeLine(line);
                 }
             } catch (ClassNotFoundException
@@ -334,15 +358,20 @@ public class ZooKeeperMain {
                 | InstantiationException e
             ) {
                 LOG.debug("Unable to start jline", e);
+                // 设置JLine Missing
                 jlinemissing = true;
             }
 
             if (jlinemissing) {
+                // 打印不支持 JLine
                 System.out.println("JLine support is disabled");
+                // 创建一个 系统输入流
                 BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
                 String line;
+                // 读取一行数据
                 while ((line = br.readLine()) != null) {
+                    // 执行一行数据
                     executeLine(line);
                 }
             }
@@ -354,10 +383,15 @@ public class ZooKeeperMain {
     }
 
     public void executeLine(String line) throws CliException, InterruptedException, IOException {
+        // 非空行
         if (!line.equals("")) {
+            // 解析命令
             cl.parseCommand(line);
+            // 添加到历史命令集合中
             addToHistory(commandCount, line);
+            // 处理命令
             processCmd(cl);
+            // 命令数+1
             commandCount++;
         }
     }
@@ -365,6 +399,7 @@ public class ZooKeeperMain {
     protected boolean processCmd(MyCommandOptions co) throws CliException, IOException, InterruptedException {
         boolean watch = false;
         try {
+            // 处理zk命令
             watch = processZKCmd(co);
             exitCode = ExitCode.EXECUTION_FINISHED.getValue();
         } catch (CliException ex) {
@@ -376,22 +411,25 @@ public class ZooKeeperMain {
 
     protected boolean processZKCmd(MyCommandOptions co) throws CliException, IOException, InterruptedException {
         String[] args = co.getArgArray();
+        // 获取命令字符串
         String cmd = co.getCommand();
         if (args.length < 1) {
             usage();
             throw new MalformedCommandException("No command entered");
         }
-
+        // 判断命令是否存在
         if (!commandMap.containsKey(cmd)) {
             usage();
             throw new CommandNotFoundException("Command not found " + cmd);
         }
 
+        // 是否监听
         boolean watch = false;
 
         LOG.debug("Processing {}", cmd);
-
+        // 如果是退出命令
         if (cmd.equals("quit")) {
+            // 关闭客户端
             zk.close();
             ServiceUtils.requestSystemExit(exitCode);
         } else if (cmd.equals("redo") && args.length >= 2) {
@@ -433,9 +471,11 @@ public class ZooKeeperMain {
         }
 
         // execute from commandMap
+        // 获取客户端命令对象
         CliCommand cliCmd = commandMapCli.get(cmd);
         if (cliCmd != null) {
             cliCmd.setZk(zk);
+            // 解析参数，并执行
             watch = cliCmd.parse(args).exec();
         } else if (!commandMap.containsKey(cmd)) {
             usage();

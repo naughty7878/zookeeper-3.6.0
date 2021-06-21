@@ -162,6 +162,7 @@ public class Learner {
         synchronized (leaderOs) {
             if (pp != null) {
                 messageTracker.trackSent(pp.getType());
+                // 从节点leader输出流输出数据到leader
                 leaderOs.writeRecord(pp, "packet");
             }
             if (flush) {
@@ -213,7 +214,9 @@ public class Learner {
             oa.write(b);
         }
         oa.close();
+        // 创建一个发送包，发送给Leader
         QuorumPacket qp = new QuorumPacket(Leader.REQUEST, -1, baos.toByteArray(), request.authInfo);
+        // 将包发送给Leader
         writePacket(qp, true);
     }
 

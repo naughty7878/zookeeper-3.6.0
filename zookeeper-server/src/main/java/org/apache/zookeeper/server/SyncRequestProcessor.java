@@ -160,6 +160,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
             resetSnapshotStats();
             lastFlushTime = Time.currentElapsedTime();
             while (true) {
+                // 服务指标
                 ServerMetrics.getMetrics().SYNC_PROCESSOR_QUEUE_SIZE.add(queuedRequests.size());
 
                 long pollTime = Math.min(zks.getMaxWriteQueuePollTime(), getRemainingDelay());
@@ -180,6 +181,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                 ServerMetrics.getMetrics().SYNC_PROCESSOR_QUEUE_TIME.add(startProcessTime - si.syncQueueStartTime);
 
                 // track the number of records written to the log
+                // 获取ZK数据库，添加请求数据
                 if (zks.getZKDatabase().append(si)) {
                     if (shouldSnapshot()) {
                         resetSnapshotStats();
@@ -208,6 +210,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                     // flushes (writes), then just pass this to the next
                     // processor
                     if (nextProcessor != null) {
+                        // 下一个处理器，处理请求
                         nextProcessor.processRequest(si);
                         if (nextProcessor instanceof Flushable) {
                             ((Flushable) nextProcessor).flush();
@@ -235,6 +238,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
         ServerMetrics.getMetrics().BATCH_SIZE.add(toFlush.size());
 
         long flushStartTime = Time.currentElapsedTime();
+        // 获取数据库，提交
         zks.getZKDatabase().commit();
         ServerMetrics.getMetrics().SYNC_PROCESSOR_FLUSH_TIME.add(Time.currentElapsedTime() - flushStartTime);
 
@@ -275,10 +279,11 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
 
     public void processRequest(final Request request) {
         Objects.requireNonNull(request, "Request cannot be null");
-
+        // 同步队列开始时间
         request.syncQueueStartTime = Time.currentElapsedTime();
         // 将请求添加到请求队列中
         queuedRequests.add(request);
+        // 服务指标
         ServerMetrics.getMetrics().SYNC_PROCESSOR_QUEUED.add(1);
     }
 

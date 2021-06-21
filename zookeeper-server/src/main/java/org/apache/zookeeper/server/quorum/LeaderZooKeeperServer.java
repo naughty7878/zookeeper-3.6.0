@@ -61,22 +61,33 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
         return self.leader;
     }
 
+    // 启动请求处理器
     @Override
     protected void setupRequestProcessors() {
+        // 创建最终请求处理器
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
+        // 创建支持请求处理器
         RequestProcessor toBeAppliedProcessor = new Leader.ToBeAppliedRequestProcessor(finalProcessor, getLeader());
+        // 创建提交处理器
         commitProcessor = new CommitProcessor(toBeAppliedProcessor, Long.toString(getServerId()), false, getZooKeeperServerListener());
+        // 开启提交处理器
         commitProcessor.start();
+        // 创建建议请求处理器
         ProposalRequestProcessor proposalProcessor = new ProposalRequestProcessor(this, commitProcessor);
+        // 初始化建议请求处理器
         proposalProcessor.initialize();
+        // 创建预备请求处理器
         prepRequestProcessor = new PrepRequestProcessor(this, proposalProcessor);
+        // 开启预备请求处理器
         prepRequestProcessor.start();
+        // 创建领导请求处理器，作为第一个请求处理器
         firstProcessor = new LeaderRequestProcessor(this, prepRequestProcessor);
-
+        // 启动容器管理器
         setupContainerManager();
     }
 
     private synchronized void setupContainerManager() {
+        // 创建容器管理器
         containerManager = new ContainerManager(
             getZKDatabase(),
             prepRequestProcessor,
@@ -90,6 +101,7 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
     public synchronized void startup() {
         super.startup();
         if (containerManager != null) {
+            // 启动容器管理器
             containerManager.start();
         }
     }
@@ -202,6 +214,7 @@ public class LeaderZooKeeperServer extends QuorumZooKeeperServer {
          * This is done so that requests from learners won't go through
          * LeaderRequestProcessor which perform local session upgrade.
          */
+        // 预处理请求处理器
         prepRequestProcessor.processRequest(request);
     }
 

@@ -719,6 +719,7 @@ public class NIOServerCnxn extends ServerCnxn {
         // The last parameter OpCode here is used to select the response cache.
         // Passing OpCode.error (with a value of -1) means we don't care, as we don't need
         // response cache on delivering watcher events.
+        // 发送响应 notification
         sendResponse(h, e, "notification", null, null, ZooDefs.OpCode.error);
     }
 

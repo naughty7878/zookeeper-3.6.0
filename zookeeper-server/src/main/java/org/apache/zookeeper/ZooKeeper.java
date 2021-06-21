@@ -527,9 +527,10 @@ public class ZooKeeper implements AutoCloseable {
             Watcher.Event.EventType type,
             String clientPath) {
             Set<Watcher> result = new HashSet<Watcher>();
-
+            // 根据类型不同，添加不同的监听器
             switch (type) {
             case None:
+                // 添加默认监听器，默认值为 MyWatcher
                 result.add(defaultWatcher);
                 boolean clear = disableAutoWatchReset && state != Watcher.Event.KeeperState.SyncConnected;
                 synchronized (dataWatches) {
@@ -933,6 +934,7 @@ public class ZooKeeper implements AutoCloseable {
         Watcher watcher,
         boolean canBeReadOnly,
         HostProvider aHostProvider) throws IOException {
+        // 创建 ZooKeeper
         this(connectString, sessionTimeout, watcher, canBeReadOnly, aHostProvider, null);
     }
 
@@ -1011,20 +1013,26 @@ public class ZooKeeper implements AutoCloseable {
         if (clientConfig == null) {
             clientConfig = new ZKClientConfig();
         }
+        // 客户端配置 默认是空
         this.clientConfig = clientConfig;
+        // 监听器管理器
         watchManager = defaultWatchManager();
         watchManager.defaultWatcher = watcher;
+        // 连接地址解析
         ConnectStringParser connectStringParser = new ConnectStringParser(connectString);
+        // 主机提供者
         hostProvider = aHostProvider;
-
+        // 创建连接
         cnxn = createConnection(
             connectStringParser.getChrootPath(),
             hostProvider,
             sessionTimeout,
             this,
             watchManager,
+            // 获取客户端连接Socket
             getClientCnxnSocket(),
             canBeReadOnly);
+        // 启动连接
         cnxn.start();
     }
 
@@ -1037,6 +1045,7 @@ public class ZooKeeper implements AutoCloseable {
         ClientWatchManager watcher,
         ClientCnxnSocket clientCnxnSocket,
         boolean canBeReadOnly) throws IOException {
+        // 创建客户端连接
         return new ClientCnxn(
             chrootPath,
             hostProvider,
@@ -1104,6 +1113,7 @@ public class ZooKeeper implements AutoCloseable {
         int sessionTimeout,
         Watcher watcher,
         boolean canBeReadOnly) throws IOException {
+        // 创建ZooKeeper
         this(connectString, sessionTimeout, watcher, canBeReadOnly, createDefaultHostProvider(connectString));
     }
 
@@ -1716,19 +1726,25 @@ public class ZooKeeper implements AutoCloseable {
         final String clientPath = path;
         PathUtils.validatePath(clientPath, createMode.isSequential());
         EphemeralType.validateTTL(createMode, -1);
+        // 验证权限
         validateACL(acl);
 
         final String serverPath = prependChroot(clientPath);
 
+        // 创建一个请求头
         RequestHeader h = new RequestHeader();
         h.setType(createMode.isContainer() ? ZooDefs.OpCode.createContainer : ZooDefs.OpCode.create);
+        // 创建请求
         CreateRequest request = new CreateRequest();
+        // 创建响应
         CreateResponse response = new CreateResponse();
         request.setData(data);
         request.setFlags(createMode.toFlag());
         request.setPath(serverPath);
         request.setAcl(acl);
+        // 提交请求，返回回复头对象
         ReplyHeader r = cnxn.submitRequest(h, request, response, null);
+        // 判断回复头对象是否有错
         if (r.getErr() != 0) {
             throw KeeperException.create(KeeperException.Code.get(r.getErr()), clientPath);
         }
@@ -2330,6 +2346,7 @@ public class ZooKeeper implements AutoCloseable {
         PathUtils.validatePath(clientPath);
 
         // the watch contains the un-chroot path
+        // 创建一个监听器注册器
         WatchRegistration wcb = null;
         if (watcher != null) {
             wcb = new DataWatchRegistration(watcher, clientPath);
@@ -2343,6 +2360,7 @@ public class ZooKeeper implements AutoCloseable {
         request.setPath(serverPath);
         request.setWatch(watcher != null);
         GetDataResponse response = new GetDataResponse();
+        // 提交请求
         ReplyHeader r = cnxn.submitRequest(h, request, response, wcb);
         if (r.getErr() != 0) {
             throw KeeperException.create(KeeperException.Code.get(r.getErr()), clientPath);
@@ -2372,6 +2390,7 @@ public class ZooKeeper implements AutoCloseable {
      * @throws InterruptedException If the server transaction is interrupted.
      */
     public byte[] getData(String path, boolean watch, Stat stat) throws KeeperException, InterruptedException {
+        // watch 为true时，使用默认的监听器作为监听参数
         return getData(path, watch ? watchManager.defaultWatcher : null, stat);
     }
 
@@ -3391,6 +3410,7 @@ public class ZooKeeper implements AutoCloseable {
         try {
             Constructor<?> clientCxnConstructor = Class.forName(clientCnxnSocketName)
                                                        .getDeclaredConstructor(ZKClientConfig.class);
+            // 反射创建了一个 ClientCnxnSocketNIO 对象
             ClientCnxnSocket clientCxnSocket = (ClientCnxnSocket) clientCxnConstructor.newInstance(getClientConfig());
             return clientCxnSocket;
         } catch (Exception e) {

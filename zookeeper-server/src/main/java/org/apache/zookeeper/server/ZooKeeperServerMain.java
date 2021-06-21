@@ -135,14 +135,14 @@ public class ZooKeeperServerMain {
         FileTxnSnapLog txnLog = null;
         try {
             try {
-                // 创建 度量提供者 对象
+                // 创建 指标提供者 对象
                 metricsProvider = MetricsProviderBootstrap.startMetricsProvider(
                     config.getMetricsProviderClassName(),
                     config.getMetricsProviderConfiguration());
             } catch (MetricsProviderLifeCycleException error) {
                 throw new IOException("Cannot boot MetricsProvider " + config.getMetricsProviderClassName(), error);
             }
-            // 度量提供者初始化
+            // 指标提供者初始化
             ServerMetrics.metricsProviderInitialized(metricsProvider);
             // Note that this thread isn't going to be doing anything else,
             // so rather than spawning another thread, we will just call

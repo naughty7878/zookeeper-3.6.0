@@ -89,7 +89,7 @@ import org.slf4j.LoggerFactory;
  * outstandingRequests, so that it can take into account transactions that are
  * in the queue to be applied when generating a transaction.
  */
-    public class PrepRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
+public class PrepRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrepRequestProcessor.class);
 
@@ -138,6 +138,7 @@ import org.slf4j.LoggerFactory;
                 ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUE_SIZE.add(submittedRequests.size());
                 // 从提交请求队列获取请求
                 Request request = submittedRequests.take();
+                // 服务指标
                 ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUE_TIME
                     .add(Time.currentElapsedTime() - request.prepQueueStartTime);
                 long traceMask = ZooTrace.CLIENT_REQUEST_TRACE_MASK;
@@ -150,7 +151,7 @@ import org.slf4j.LoggerFactory;
                 if (Request.requestOfDeath == request) {
                     break;
                 }
-
+                // 预处理开始时间
                 request.prepStartTime = Time.currentElapsedTime();
                 // 处理请求
                 pRequest(request);
@@ -196,8 +197,11 @@ import org.slf4j.LoggerFactory;
 
     protected void addChangeRecord(ChangeRecord c) {
         synchronized (zks.outstandingChanges) {
+            // 添加到改变记录队列中
             zks.outstandingChanges.add(c);
+            // 添加到改变记录集合中
             zks.outstandingChangesForPath.put(c.path, c);
+            // 服务指标
             ServerMetrics.getMetrics().OUTSTANDING_CHANGES_QUEUED.add(1);
         }
     }
@@ -328,6 +332,7 @@ import org.slf4j.LoggerFactory;
         case OpCode.create2:
         case OpCode.createTTL:
         case OpCode.createContainer: {
+            // 创建请求事务
             pRequest2TxnCreate(type, request, record, deserialize);
             break;
         }
@@ -672,18 +677,23 @@ import org.slf4j.LoggerFactory;
             data = createRequest.getData();
             ttl = -1;
         }
+        // 获取创建模式
         CreateMode createMode = CreateMode.fromFlag(flags);
+        // 验证创建请求
         validateCreateRequest(path, createMode, request, ttl);
+        // 验证并获取父路径
         String parentPath = validatePathForCreate(path, request.sessionId);
-
+        // 权限控制姐
         List<ACL> listACL = fixupACL(path, request.authInfo, acl);
+        // 获取父路径纪律
         ChangeRecord parentRecord = getRecordForPath(parentPath);
-
+        // 检查权限
         zks.checkACL(request.cnxn, parentRecord.acl, ZooDefs.Perms.CREATE, request.authInfo, path, listACL);
         int parentCVersion = parentRecord.stat.getCversion();
         if (createMode.isSequential()) {
             path = path + String.format(Locale.ENGLISH, "%010d", parentCVersion);
         }
+        // 验证路径
         validatePath(path, request.sessionId);
         try {
             if (getRecordForPath(path) != null) {
@@ -721,13 +731,16 @@ import org.slf4j.LoggerFactory;
         parentRecord.stat.setPzxid(request.getHdr().getZxid());
         parentRecord.precalculatedDigest = precalculateDigest(
                 DigestOpCode.UPDATE, parentPath, parentRecord.data, parentRecord.stat);
+        // 添加改变记录-父节点
         addChangeRecord(parentRecord);
+        // 创建改变记录
         ChangeRecord nodeRecord = new ChangeRecord(
                 request.getHdr().getZxid(), path, s, 0, listACL);
         nodeRecord.data = data;
         nodeRecord.precalculatedDigest = precalculateDigest(
                 DigestOpCode.ADD, path, nodeRecord.data, s);
         setTxnDigest(request, nodeRecord.precalculatedDigest);
+        // 添加改变记录-当前节点
         addChangeRecord(nodeRecord);
     }
 
@@ -777,7 +790,9 @@ import org.slf4j.LoggerFactory;
             case OpCode.createContainer:
             case OpCode.create:
             case OpCode.create2:
+                // 新建一个创建请求对象
                 CreateRequest create2Request = new CreateRequest();
+                // 开始处理请求事务
                 pRequest2Txn(request.type, zks.getNextZxid(), request, create2Request, true);
                 break;
             case OpCode.createTTL:
@@ -1046,10 +1061,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public void processRequest(Request request) {
-        // 开始⌚️
+        // 预处理队列开始时间
         request.prepQueueStartTime = Time.currentElapsedTime();
         // 将请求添加到 提交请求队列中
         submittedRequests.add(request);
+        // 服务指标-请求处理器队列+1
         ServerMetrics.getMetrics().PREP_PROCESSOR_QUEUED.add(1);
     }
 

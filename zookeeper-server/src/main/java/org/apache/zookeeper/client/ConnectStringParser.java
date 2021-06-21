@@ -66,11 +66,14 @@ public final class ConnectStringParser {
         } else {
             this.chrootPath = null;
         }
-
+        // ","分割字符串
         List<String> hostsList = split(connectString, ",");
+        // 遍历
         for (String host : hostsList) {
+            // 默认端口
             int port = DEFAULT_PORT;
             try {
+                // 默认主机 和 端口
                 String[] hostAndPort = ConfigUtils.getHostAndPort(host);
                 host = hostAndPort[0];
                 if (hostAndPort.length == 2) {
@@ -79,7 +82,8 @@ public final class ConnectStringParser {
             } catch (ConfigException e) {
                 e.printStackTrace();
             }
-
+            // 使用主机和端口 生成 socket地址对象
+            // 添加到集合中
             serverAddresses.add(InetSocketAddress.createUnresolved(host, port));
         }
     }

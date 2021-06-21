@@ -47,8 +47,10 @@ public class GetCommand extends CliCommand {
     @Override
     public CliCommand parse(String[] cmdArgs) throws CliParseException {
 
+        // 创建解析器
         Parser parser = new PosixParser();
         try {
+            // 解析参数
             cl = parser.parse(options, cmdArgs);
         } catch (ParseException ex) {
             throw new CliParseException(ex);
@@ -81,6 +83,7 @@ public class GetCommand extends CliCommand {
 
     @Override
     public boolean exec() throws CliException {
+        // 是否有监听参数
         boolean watch = cl.hasOption("w");
         String path = args[1];
         Stat stat = new Stat();

@@ -42,9 +42,9 @@ import org.slf4j.LoggerFactory;
 public class WatchManager implements IWatchManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(WatchManager.class);
-
+    // 监听列表 key 路径， value 监听器(客户端连接)集合
     private final Map<String, Set<Watcher>> watchTable = new HashMap<>();
-
+    // 监听列表 key 监听器(客户端连接)， value 监听器(客户端)对应的所有路径
     private final Map<Watcher, Set<String>> watch2Paths = new HashMap<>();
 
     private final WatcherModeManager watcherModeManager = new WatcherModeManager();
@@ -64,6 +64,7 @@ public class WatchManager implements IWatchManager {
 
     @Override
     public boolean addWatch(String path, Watcher watcher) {
+        // 根据路径添加监听器
         return addWatch(path, watcher, WatcherMode.DEFAULT_WATCHER_MODE);
     }
 
@@ -73,7 +74,7 @@ public class WatchManager implements IWatchManager {
             LOG.debug("Ignoring addWatch with closed cnxn");
             return false;
         }
-
+        // 根据路径，从监听列表中获取监听集合
         Set<Watcher> list = watchTable.get(path);
         if (list == null) {
             // don't waste memory if there are few watches on a node
@@ -82,17 +83,18 @@ public class WatchManager implements IWatchManager {
             list = new HashSet<>(4);
             watchTable.put(path, list);
         }
+        // 将监听器添加到集合中
         list.add(watcher);
-
+        // 获取监听器对应的路径集合
         Set<String> paths = watch2Paths.get(watcher);
         if (paths == null) {
             // cnxns typically have many watches, so use default cap here
             paths = new HashSet<>();
             watch2Paths.put(watcher, paths);
         }
-
+        // 设置监听器模式
         watcherModeManager.setWatcherMode(watcher, path, watcherMode);
-
+        // 将新路径添加到集合中
         return paths.add(path);
     }
 
@@ -121,29 +123,40 @@ public class WatchManager implements IWatchManager {
 
     @Override
     public WatcherOrBitSet triggerWatch(String path, EventType type, WatcherOrBitSet supress) {
+        // 创建一个新的监听事件
         WatchedEvent e = new WatchedEvent(type, KeeperState.SyncConnected, path);
+        // 有效的监听器集合
         Set<Watcher> watchers = new HashSet<>();
+        // 获取路径父级迭代器
         PathParentIterator pathParentIterator = getPathParentIterator(path);
         synchronized (this) {
             for (String localPath : pathParentIterator.asIterable()) {
+                // 根据路径从监听列表中获取监听器集合
                 Set<Watcher> thisWatchers = watchTable.get(localPath);
                 if (thisWatchers == null || thisWatchers.isEmpty()) {
                     continue;
                 }
+                // 获取监听器迭代器
                 Iterator<Watcher> iterator = thisWatchers.iterator();
+                // 迭代监听器集合
                 while (iterator.hasNext()) {
                     Watcher watcher = iterator.next();
+                    // 获取监听器模式
                     WatcherMode watcherMode = watcherModeManager.getWatcherMode(watcher, localPath);
                     if (watcherMode.isRecursive()) {
                         if (type != EventType.NodeChildrenChanged) {
                             watchers.add(watcher);
                         }
                     } else if (!pathParentIterator.atParentPath()) {
+                        // 将监听器添加到有效监听器集合中
                         watchers.add(watcher);
                         if (!watcherMode.isPersistent()) {
+                            // 移除监听器
                             iterator.remove();
+                            // 获取监听器对应的所有路径
                             Set<String> paths = watch2Paths.get(watcher);
                             if (paths != null) {
+                                // 移除路径
                                 paths.remove(localPath);
                             }
                         }
@@ -161,10 +174,12 @@ public class WatchManager implements IWatchManager {
             return null;
         }
 
+        // 遍历监听器
         for (Watcher w : watchers) {
             if (supress != null && supress.contains(w)) {
                 continue;
             }
+            // 处理事件
             w.process(e);
         }
 

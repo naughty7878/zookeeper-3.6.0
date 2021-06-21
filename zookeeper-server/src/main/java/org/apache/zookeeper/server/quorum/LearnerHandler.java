@@ -97,6 +97,7 @@ public class LearnerHandler extends ZooKeeperThread {
     }
 
     /**
+     * 发送给learner的包
      * The packets to be sent to the learner
      */
     final LinkedBlockingQueue<QuorumPacket> queuedPackets = new LinkedBlockingQueue<QuorumPacket>();
@@ -316,6 +317,7 @@ public class LearnerHandler extends ZooKeeperThread {
      */
     private void sendPackets() throws InterruptedException {
         long traceMask = ZooTrace.SERVER_PACKET_TRACE_MASK;
+        // 循环
         while (true) {
             try {
                 QuorumPacket p;
@@ -598,6 +600,7 @@ public class LearnerHandler extends ZooKeeperThread {
             bufferedOutput.flush();
 
             // Start thread that blast packets in the queue to learner
+            // 开始发送包给learner
             startSendingPackets();
 
             /*
@@ -638,8 +641,10 @@ public class LearnerHandler extends ZooKeeperThread {
             LOG.debug("Sending UPTODATE message to {}", sid);
             queuedPackets.add(new QuorumPacket(Leader.UPTODATE, -1, null, null));
 
+            // 循环
             while (true) {
                 qp = new QuorumPacket();
+                // 接收数据包
                 ia.readRecord(qp, "packet");
                 messageTracker.trackReceived(qp.getType());
 
@@ -661,10 +666,12 @@ public class LearnerHandler extends ZooKeeperThread {
 
                 switch (qp.getType()) {
                 case Leader.ACK:
+                    // 来自Learner的ACK请求
                     if (this.learnerType == LearnerType.OBSERVER) {
                         LOG.debug("Received ACK from Observer {}", this.sid);
                     }
                     syncLimitCheck.updateAck(qp.getZxid());
+                    // 处理ACK
                     learnerMaster.processAck(this.sid, qp.getZxid(), sock.getLocalSocketAddress());
                     break;
                 case Leader.PING:
@@ -682,6 +689,7 @@ public class LearnerHandler extends ZooKeeperThread {
                     learnerMaster.revalidateSession(qp, this);
                     break;
                 case Leader.REQUEST:
+                    // 来自Learner的写请求
                     bb = ByteBuffer.wrap(qp.getData());
                     sessionId = bb.getLong();
                     cxid = bb.getInt();
@@ -694,6 +702,7 @@ public class LearnerHandler extends ZooKeeperThread {
                         si = new Request(null, sessionId, cxid, type, bb, qp.getAuthinfo());
                     }
                     si.setOwner(this);
+                    // 提交Learner的请求
                     learnerMaster.submitLearnerRequest(si);
                     requestsReceived.incrementAndGet();
                     break;
@@ -743,6 +752,7 @@ public class LearnerHandler extends ZooKeeperThread {
                 public void run() {
                     Thread.currentThread().setName("Sender-" + sock.getRemoteSocketAddress());
                     try {
+                        // 发送包
                         sendPackets();
                     } catch (InterruptedException e) {
                         LOG.warn("Unexpected interruption", e);
@@ -1090,6 +1100,7 @@ public class LearnerHandler extends ZooKeeperThread {
     }
 
     void queuePacket(QuorumPacket p) {
+        // 添加到发送包队列中
         queuedPackets.add(p);
         // Add a MarkerQuorumPacket at regular intervals.
         if (shouldSendMarkerPacketForLogging() && packetCounter.getAndIncrement() % markerPacketInterval == 0) {
